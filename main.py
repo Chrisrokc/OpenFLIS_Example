@@ -16,6 +16,8 @@ def get_niin_data(niin, table_type):
         table = "HISTORY_PICK"
     elif table_type == "management":
         table = "MANAGEMENT_FUTURE"
+    elif table_type == "army_management":
+        table = "MGMT_ARMY"
     else:
         print("Invalid table type")
         return None
@@ -70,7 +72,8 @@ def show_menu():
     print("1. FLIS NSN (NSN Table)")
     print("2. History (HISTORY_PICK Table)")
     print("3. Management (MANAGEMENT_FUTURE Table)")
-    return input("Choose option (1, 2, or 3): ").strip()
+    print("4. Army Management (MGMT_ARMY Table)")
+    return input("Choose option (1, 2, 3, or 4): ").strip()
 
 def main():
     """Main application loop"""
@@ -90,8 +93,11 @@ def main():
         elif selection == "3":
             table_type = "management"
             table_name = "Management"
+        elif selection == "4":
+            table_type = "army_management"
+            table_name = "Army Management"
         else:
-            print("Invalid selection. Please choose 1, 2, or 3.")
+            print("Invalid selection. Please choose 1, 2, 3, or 4.")
             continue
         
         print(f"\nSelected: {table_name}")
