@@ -9,7 +9,7 @@ def get_niin_data(niin):
         print("Error: OPENFLIS_API_KEY environment variable not set")
         return None
     
-    url = f"https://app.openflis.com/api/v1/query?table=IDENTIFICATION&key={niin}&apiKey={api_key}"
+    url = f"https://app.openflis.com/api/v1/query?table=NSN&key={niin}&apiKey={api_key}"
     
     try:
         response = requests.get(url)
