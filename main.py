@@ -14,8 +14,10 @@ def get_niin_data(niin, table_type):
         table = "NSN"
     elif table_type == "history":
         table = "HISTORY_PICK"
-    elif table_type == "management":
+    elif table_type == "management_future":
         table = "MANAGEMENT_FUTURE"
+    elif table_type == "management":
+        table = "MANAGEMENT"
     elif table_type == "army_management":
         table = "MGMT_ARMY"
     else:
@@ -71,9 +73,10 @@ def show_menu():
     print("\nSelect API Endpoint:")
     print("1. FLIS NSN (NSN Table)")
     print("2. History (HISTORY_PICK Table)")
-    print("3. Management (MANAGEMENT_FUTURE Table)")
-    print("4. Army Management (MGMT_ARMY Table)")
-    return input("Choose option (1, 2, 3, or 4): ").strip()
+    print("3. Management Future (MANAGEMENT_FUTURE Table)")
+    print("4. Management (MANAGEMENT Table)")
+    print("5. Army Management (MGMT_ARMY Table)")
+    return input("Choose option (1, 2, 3, 4, or 5): ").strip()
 
 def main():
     """Main application loop"""
@@ -91,13 +94,16 @@ def main():
             table_type = "history"
             table_name = "History"
         elif selection == "3":
+            table_type = "management_future"
+            table_name = "Management Future"
+        elif selection == "4":
             table_type = "management"
             table_name = "Management"
-        elif selection == "4":
+        elif selection == "5":
             table_type = "army_management"
             table_name = "Army Management"
         else:
-            print("Invalid selection. Please choose 1, 2, 3, or 4.")
+            print("Invalid selection. Please choose 1, 2, 3, 4, or 5.")
             continue
         
         print(f"\nSelected: {table_name}")
