@@ -172,6 +172,46 @@ def get_part_summary(niin):
     
     return result
 
+def detect_input_type(user_input):
+    """
+    Detect if input is a NIIN or Part Number
+    Returns: 'niin' or 'part_number'
+    
+    Logic:
+    - Contains letters -> Part Number
+    - No dashes, 7-9 digits -> NIIN
+    - One dash in FSC-NIIN format (4-9 digits) -> NIIN (NSN format)
+    - Multiple dashes or other patterns -> Part Number
+    """
+    # Remove whitespace
+    cleaned = user_input.strip()
+    
+    # If contains letters, it's a part number
+    if not cleaned.replace('-', '').replace(' ', '').isdigit():
+        return 'part_number'
+    
+    # Count dashes
+    dash_count = cleaned.count('-')
+    
+    # No dashes - check if it's 7-9 digits (NIIN)
+    if dash_count == 0:
+        if 7 <= len(cleaned) <= 9 and cleaned.isdigit():
+            return 'niin'
+        else:
+            return 'part_number'
+    
+    # One dash - check if it's NSN format (XXXX-XXXXXXXXX or similar)
+    if dash_count == 1:
+        parts = cleaned.split('-')
+        if len(parts) == 2:
+            fsc, niin_part = parts
+            # NSN format is typically 4-digit FSC and 9-digit NIIN
+            if len(fsc) == 4 and 7 <= len(niin_part) <= 9:
+                return 'niin'  # This is NSN format
+    
+    # Multiple dashes or non-standard format -> Part Number
+    return 'part_number'
+
 def lookup_by_part_number(part_number):
     """Look up part information by Part Number using OpenFLIS NSN endpoint"""
     api_key = os.getenv('OPENFLIS_API_KEY')
@@ -409,11 +449,11 @@ def main():
                     print("Please enter a valid NIIN or Part Number")
                     continue
                 
-                # Detect if input is NIIN (numeric only, 7-9 digits) or Part Number (contains dashes/letters)
-                is_niin = user_input.replace('-', '').isdigit() and len(user_input.replace('-', '')) >= 7
+                # Detect input type
+                input_type = detect_input_type(user_input)
                 
-                if is_niin:
-                    # Input is a NIIN
+                if input_type == 'niin':
+                    # Input is a NIIN - extract digits and remove dashes if NSN format
                     niin = user_input.replace('-', '')
                     print(f"\nFetching comprehensive summary for NIIN: {niin}")
                     print("Please wait...")
@@ -476,11 +516,11 @@ def main():
                 print("Please enter a valid NIIN or Part Number")
                 continue
             
-            # Detect if input is NIIN (numeric only, 7-9 digits) or Part Number (contains dashes/letters)
-            is_niin = user_input.replace('-', '').isdigit() and len(user_input.replace('-', '')) >= 7
+            # Detect input type
+            input_type = detect_input_type(user_input)
             
-            if is_niin:
-                # Input is a NIIN
+            if input_type == 'niin':
+                # Input is a NIIN - extract digits and remove dashes if NSN format
                 niin = user_input.replace('-', '')
             else:
                 # Input is a Part Number - look it up first to get NIIN
