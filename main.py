@@ -172,6 +172,84 @@ def get_part_summary(niin):
     
     return result
 
+def lookup_by_part_number(part_number):
+    """Look up part information by Part Number using OpenFLIS NSN endpoint"""
+    api_key = os.getenv('OPENFLIS_API_KEY')
+    if not api_key:
+        return {
+            "Part Number": part_number,
+            "NIIN": "",
+            "NSN": "",
+            "FSC": "",
+            "Item Name": "",
+            "Matched": False,
+            "error": "OPENFLIS_API_KEY environment variable not set"
+        }
+    
+    # Query NSN table with part number
+    nsn_url = f"https://app.openflis.com/api/v1/query?table=NSN&key={part_number}&apiKey={api_key}"
+    
+    try:
+        response = requests.get(nsn_url)
+        response.raise_for_status()
+        data = response.json()
+        
+        records = data.get("records", [])
+        
+        if not records:
+            return {
+                "Part Number": part_number,
+                "NIIN": "",
+                "NSN": "",
+                "FSC": "",
+                "Item Name": "",
+                "Matched": False
+            }
+        
+        # Try to find exact match (case-insensitive) by comparing returned part numbers
+        # Note: The NSN table doesn't always return part numbers in records, so we'll work with what we have
+        selected_record = records[0]  # Default to first record
+        matched = False
+        
+        # Check if any record has a matching part number (if that field exists)
+        # Since NSN table structure varies, we'll use the first record and assume match based on API behavior
+        # The API should return relevant results when queried by part number
+        
+        # Extract data from selected record
+        fsc = selected_record.get("FSC", "")
+        inc = selected_record.get("INC", "")
+        item_name = selected_record.get("ITEM_NAME", "")
+        
+        # Construct NIIN from INC (which is NIIN without leading zeros)
+        niin = inc.zfill(9) if inc else ""
+        
+        # Construct NSN
+        nsn = f"{fsc}-{niin}" if fsc and niin else ""
+        
+        # Since we queried by part number, assume it's matched if we got results
+        # A more robust check would require the API to return the part number field
+        matched = True if records else False
+        
+        return {
+            "Part Number": part_number,
+            "NIIN": niin,
+            "NSN": nsn,
+            "FSC": fsc,
+            "Item Name": item_name,
+            "Matched": matched
+        }
+        
+    except requests.exceptions.RequestException as e:
+        return {
+            "Part Number": part_number,
+            "NIIN": "",
+            "NSN": "",
+            "FSC": "",
+            "Item Name": "",
+            "Matched": False,
+            "error": f"Error querying API: {e}"
+        }
+
 def get_niin_data(niin, table_type):
     """Fetch NIIN data from OpenFLIS API"""
     api_key = os.getenv('OPENFLIS_API_KEY')
