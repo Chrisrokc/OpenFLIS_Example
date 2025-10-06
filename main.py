@@ -24,6 +24,8 @@ def get_niin_data(niin, table_type):
         table = "STANDARDIZATION"
     elif table_type == "moe_rule":
         table = "MOE_RULE"
+    elif table_type == "management_history":
+        table = "MANAGEMENT_HISTORY"
     else:
         print("Invalid table type")
         return None
@@ -82,7 +84,8 @@ def show_menu():
     print("5. Army Management (MGMT_ARMY Table)")
     print("6. Standardization (STANDARDIZATION Table)")
     print("7. MOE Rule Coded (MOE_RULE Table)")
-    return input("Choose option (1, 2, 3, 4, 5, 6, or 7): ").strip()
+    print("8. Management History (MANAGEMENT_HISTORY Table)")
+    return input("Choose option (1, 2, 3, 4, 5, 6, 7, or 8): ").strip()
 
 def main():
     """Main application loop"""
@@ -114,8 +117,11 @@ def main():
         elif selection == "7":
             table_type = "moe_rule"
             table_name = "MOE Rule Coded"
+        elif selection == "8":
+            table_type = "management_history"
+            table_name = "Management History"
         else:
-            print("Invalid selection. Please choose 1, 2, 3, 4, 5, 6, or 7.")
+            print("Invalid selection. Please choose 1, 2, 3, 4, 5, 6, 7, or 8.")
             continue
         
         print(f"\nSelected: {table_name}")
