@@ -160,11 +160,11 @@ def get_part_summary(niin):
         moe_data = moe_response.json()
         
         if moe_data.get("records"):
-            # Get first PICA code for managing service
+            # Get first SICA code for managing service
             for record in moe_data["records"]:
-                pica = record.get("PICA", "")
-                if pica:
-                    result["Managing Service"] = SERVICE_CODE_MAP.get(pica, pica)
+                sica = record.get("SICA", "")
+                if sica:
+                    result["Managing Service"] = SERVICE_CODE_MAP.get(sica, sica)
                     break
     
     except requests.exceptions.RequestException as e:
