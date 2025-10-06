@@ -25,6 +25,30 @@ PICA_SERVICE_MAP = {
     "ZC": "Classified Item",
 }
 
+SERVICE_CODE_MAP = {
+    "A": "Army",
+    "F": "Air Force",
+    "N": "Navy",
+    "M": "Marine Corps",
+    "C": "Coast Guard",
+    "D": "DLA",
+    "GX": "DLA Land & Maritime",
+    "GH": "DLA Aviation",
+    "BF": "DLA Troop Support",
+    "PA": "DLA Troop Support - Philadelphia",
+    "CD": "DLA Aviation (Columbus)",
+    "SX": "Air Force",
+    "YP": "Foreign Military Sales (FMS)",
+    "ZA": "NATO/Commercial",
+    "ZH": "GSA",
+    "ZW": "Service not otherwise listed",
+    "YY": "Special Program Use",
+    "ZB": "GSA",
+    "ZN": "NATO (non-US)",
+    "ZU": "Obsolete/Discontinued",
+    "ZC": "Classified Item"
+}
+
 def get_managing_services(moe_records):
     """Extract and deduplicate managing services from MOE_RULE records based on PICA codes"""
     services = []
@@ -38,6 +62,56 @@ def get_managing_services(moe_records):
             services.append(service_name)
     
     return services
+
+def analyze_service_ownership(moe_records):
+    """Analyze MOE_RULE records to identify managing service and user services"""
+    managing_service = None
+    user_codes = set()
+    
+    # Get the first valid PICA as the managing service
+    for record in moe_records:
+        pica = record.get("PICA", "")
+        if pica:
+            managing_service = SERVICE_CODE_MAP.get(pica, pica)
+            break
+    
+    # Gather all unique codes from SICA, IMCA, AUTH_RCVR, and AUTH_COLLAB
+    for record in moe_records:
+        # Add SICA
+        sica = record.get("SICA", "").strip()
+        if sica:
+            user_codes.add(sica)
+        
+        # Add IMCA
+        imca = record.get("IMCA", "").strip()
+        if imca:
+            user_codes.add(imca)
+        
+        # Add AUTH_RCVR (may contain space-separated codes)
+        auth_rcvr = record.get("AUTH_RCVR", "").strip()
+        if auth_rcvr:
+            for code in auth_rcvr.split():
+                if code:
+                    user_codes.add(code)
+        
+        # Add AUTH_COLLAB (may contain space-separated codes)
+        auth_collab = record.get("AUTH_COLLAB", "").strip()
+        if auth_collab:
+            for code in auth_collab.split():
+                if code:
+                    user_codes.add(code)
+    
+    # Translate codes to readable names
+    user_services = []
+    for code in sorted(user_codes):
+        service_name = SERVICE_CODE_MAP.get(code, code)
+        if service_name not in user_services:
+            user_services.append(service_name)
+    
+    return {
+        "managing_service": managing_service if managing_service else "Unknown",
+        "user_services": user_services
+    }
 
 def get_niin_data(niin, table_type):
     """Fetch NIIN data from OpenFLIS API"""
@@ -105,6 +179,17 @@ def display_data(data):
                 print("\n" + "-"*60)
                 print("MANAGING SERVICES SUMMARY:")
                 print("Managing Services for this NIIN:", ", ".join(services))
+                print("-"*60)
+                
+                # Show service ownership analysis
+                ownership = analyze_service_ownership(records)
+                print("\n" + "-"*60)
+                print("SERVICE OWNERSHIP ANALYSIS:")
+                print("Managed by:", ownership["managing_service"])
+                if ownership["user_services"]:
+                    print("Used by:", ", ".join(ownership["user_services"]))
+                else:
+                    print("Used by: None specified")
                 print("-"*60)
     elif isinstance(data, list):
         # If it's a list, display each item
