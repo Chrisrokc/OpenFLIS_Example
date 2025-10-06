@@ -2,6 +2,43 @@ import requests
 import os
 import json
 
+PICA_SERVICE_MAP = {
+    "A": "Army",
+    "N": "Navy",
+    "F": "Air Force",
+    "M": "Marine Corps",
+    "C": "Coast Guard",
+    "D": "Defense Logistics Agency (DLA)",
+    "GX": "DLA Land & Maritime",
+    "GH": "DLA Aviation",
+    "BF": "DLA Troop Support",
+    "PA": "DLA Troop Support - Philadelphia",
+    "CD": "DLA Aviation (Columbus)",
+    "YP": "Foreign Military Sales (FMS) or NATO",
+    "ZA": "Commercial Item/NATO",
+    "ZH": "GSA",
+    "ZW": "Service not otherwise listed",
+    "YY": "Special program use",
+    "ZB": "GSA",
+    "ZN": "NATO (non-US)",
+    "ZU": "Obsolete/Discontinued",
+    "ZC": "Classified Item",
+}
+
+def get_managing_services(moe_records):
+    """Extract and deduplicate managing services from MOE_RULE records based on PICA codes"""
+    services = []
+    seen = set()
+    
+    for record in moe_records:
+        pica = record.get("PICA", "")
+        if pica and pica not in seen:
+            seen.add(pica)
+            service_name = PICA_SERVICE_MAP.get(pica, pica)
+            services.append(service_name)
+    
+    return services
+
 def get_niin_data(niin, table_type):
     """Fetch NIIN data from OpenFLIS API"""
     api_key = os.getenv('OPENFLIS_API_KEY')
@@ -59,6 +96,16 @@ def display_data(data):
     if isinstance(data, dict):
         # If it's a dictionary, display it nicely formatted
         print(json.dumps(data, indent=2))
+        
+        # If this is MOE_RULE data, show managing services summary
+        if data.get("name") == "MOE_RULE" and "records" in data:
+            records = data.get("records", [])
+            if records:
+                services = get_managing_services(records)
+                print("\n" + "-"*60)
+                print("MANAGING SERVICES SUMMARY:")
+                print("Managing Services for this NIIN:", ", ".join(services))
+                print("-"*60)
     elif isinstance(data, list):
         # If it's a list, display each item
         for i, item in enumerate(data):
