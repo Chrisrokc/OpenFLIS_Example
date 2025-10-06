@@ -113,6 +113,65 @@ def analyze_service_ownership(moe_records):
         "user_services": user_services
     }
 
+def get_part_summary(niin):
+    """Get comprehensive part information from OpenFLIS API including NSN data and managing service"""
+    api_key = os.getenv('OPENFLIS_API_KEY')
+    if not api_key:
+        return {"error": "OPENFLIS_API_KEY environment variable not set"}
+    
+    result = {
+        "Part Number": "",
+        "NSN": "",
+        "FSC": "",
+        "NIIN": niin,
+        "Description": "",
+        "Managing Service": "",
+        "End Item Application": ""
+    }
+    
+    # Query NSN table for basic information
+    nsn_url = f"https://app.openflis.com/api/v1/query?table=NSN&key={niin}&apiKey={api_key}"
+    try:
+        nsn_response = requests.get(nsn_url)
+        nsn_response.raise_for_status()
+        nsn_data = nsn_response.json()
+        
+        if nsn_data.get("records"):
+            first_record = nsn_data["records"][0]
+            result["FSC"] = first_record.get("FSC", "")
+            result["INC"] = first_record.get("INC", "")
+            result["ITEM_NAME"] = first_record.get("ITEM_NAME", "")
+            result["Description"] = first_record.get("ITEM_NAME", "")
+            result["End Item Application"] = first_record.get("END_ITEM_NAME", "")
+            
+            # Construct NSN from FSC and NIIN
+            fsc = result["FSC"]
+            if fsc and niin:
+                result["NSN"] = f"{fsc}-{niin}"
+    
+    except requests.exceptions.RequestException as e:
+        result["error_nsn"] = f"Error fetching NSN data: {e}"
+    
+    # Query MOE_RULE table for managing service
+    moe_url = f"https://app.openflis.com/api/v1/query?table=MOE_RULE&key={niin}&apiKey={api_key}"
+    try:
+        moe_response = requests.get(moe_url)
+        moe_response.raise_for_status()
+        moe_data = moe_response.json()
+        
+        if moe_data.get("records"):
+            # Get first PICA code for managing service
+            for record in moe_data["records"]:
+                pica = record.get("PICA", "")
+                if pica:
+                    result["Managing Service"] = SERVICE_CODE_MAP.get(pica, pica)
+                    break
+    
+    except requests.exceptions.RequestException as e:
+        result["error_moe"] = f"Error fetching MOE data: {e}"
+    
+    return result
+
 def get_niin_data(niin, table_type):
     """Fetch NIIN data from OpenFLIS API"""
     api_key = os.getenv('OPENFLIS_API_KEY')
@@ -217,7 +276,8 @@ def show_menu():
     print("6. Standardization (STANDARDIZATION Table)")
     print("7. MOE Rule Coded (MOE_RULE Table)")
     print("8. Management History (MANAGEMENT_HISTORY Table)")
-    return input("Choose option (1, 2, 3, 4, 5, 6, 7, or 8): ").strip()
+    print("9. Part Summary (Comprehensive Info)")
+    return input("Choose option (1-9): ").strip()
 
 def main():
     """Main application loop"""
@@ -252,8 +312,51 @@ def main():
         elif selection == "8":
             table_type = "management_history"
             table_name = "Management History"
+        elif selection == "9":
+            # Part Summary - special handling
+            print("\nSelected: Part Summary (Comprehensive Info)")
+            print("-" * 40)
+            
+            while True:
+                niin = input("\nEnter NIIN (or 'back' to change endpoint, 'quit' to exit): ").strip()
+                
+                if niin.lower() in ['quit', 'exit', 'q']:
+                    print("Goodbye!")
+                    return
+                
+                if niin.lower() in ['back', 'b']:
+                    break
+                
+                if not niin:
+                    print("Please enter a valid NIIN")
+                    continue
+                
+                print(f"\nFetching comprehensive summary for NIIN: {niin}")
+                print("Please wait...")
+                
+                summary = get_part_summary(niin)
+                
+                print("\n" + "="*60)
+                print("PART SUMMARY")
+                print("="*60)
+                print(f"Part Number: {summary.get('Part Number', 'N/A')}")
+                print(f"NSN: {summary.get('NSN', 'N/A')}")
+                print(f"FSC: {summary.get('FSC', 'N/A')}")
+                print(f"NIIN: {summary.get('NIIN', 'N/A')}")
+                print(f"Description: {summary.get('Description', 'N/A')}")
+                print(f"Managing Service: {summary.get('Managing Service', 'N/A')}")
+                if summary.get('End Item Application'):
+                    print(f"End Item Application: {summary.get('End Item Application')}")
+                print("="*60)
+                
+                if 'error' in summary or 'error_nsn' in summary or 'error_moe' in summary:
+                    print("\nErrors encountered:")
+                    for key in ['error', 'error_nsn', 'error_moe']:
+                        if key in summary:
+                            print(f"  {summary[key]}")
+            continue
         else:
-            print("Invalid selection. Please choose 1, 2, 3, 4, 5, 6, 7, or 8.")
+            print("Invalid selection. Please choose 1-9.")
             continue
         
         print(f"\nSelected: {table_name}")
