@@ -396,23 +396,44 @@ def main():
             print("-" * 40)
             
             while True:
-                niin = input("\nEnter NIIN (or 'back' to change endpoint, 'quit' to exit): ").strip()
+                user_input = input("\nEnter NIIN or Part Number (or 'back' to change endpoint, 'quit' to exit): ").strip()
                 
-                if niin.lower() in ['quit', 'exit', 'q']:
+                if user_input.lower() in ['quit', 'exit', 'q']:
                     print("Goodbye!")
                     return
                 
-                if niin.lower() in ['back', 'b']:
+                if user_input.lower() in ['back', 'b']:
                     break
                 
-                if not niin:
-                    print("Please enter a valid NIIN")
+                if not user_input:
+                    print("Please enter a valid NIIN or Part Number")
                     continue
                 
-                print(f"\nFetching comprehensive summary for NIIN: {niin}")
-                print("Please wait...")
+                # Detect if input is NIIN (numeric only, 7-9 digits) or Part Number (contains dashes/letters)
+                is_niin = user_input.replace('-', '').isdigit() and len(user_input.replace('-', '')) >= 7
                 
-                summary = get_part_summary(niin)
+                if is_niin:
+                    # Input is a NIIN
+                    niin = user_input.replace('-', '')
+                    print(f"\nFetching comprehensive summary for NIIN: {niin}")
+                    print("Please wait...")
+                    summary = get_part_summary(niin)
+                else:
+                    # Input is a Part Number - look it up first to get NIIN
+                    print(f"\nLooking up Part Number: {user_input}")
+                    print("Please wait...")
+                    
+                    part_lookup = lookup_by_part_number(user_input)
+                    
+                    if not part_lookup.get("Matched") or not part_lookup.get("NIIN"):
+                        print(f"No matching part found for: {user_input}")
+                        continue
+                    
+                    niin = part_lookup["NIIN"]
+                    print(f"Found NIIN: {niin}")
+                    print("Fetching full summary...")
+                    
+                    summary = get_part_summary(niin)
                 
                 print("\n" + "="*60)
                 print("PART SUMMARY")
@@ -441,19 +462,37 @@ def main():
         print("-" * 40)
         
         while True:
-            # Prompt for NIIN
-            niin = input("\nEnter NIIN (or 'back' to change endpoint, 'quit' to exit): ").strip()
+            # Prompt for NIIN or Part Number
+            user_input = input("\nEnter NIIN or Part Number (or 'back' to change endpoint, 'quit' to exit): ").strip()
             
-            if niin.lower() in ['quit', 'exit', 'q']:
+            if user_input.lower() in ['quit', 'exit', 'q']:
                 print("Goodbye!")
                 return
             
-            if niin.lower() in ['back', 'b']:
+            if user_input.lower() in ['back', 'b']:
                 break  # Go back to menu
             
-            if not niin:
-                print("Please enter a valid NIIN")
+            if not user_input:
+                print("Please enter a valid NIIN or Part Number")
                 continue
+            
+            # Detect if input is NIIN (numeric only, 7-9 digits) or Part Number (contains dashes/letters)
+            is_niin = user_input.replace('-', '').isdigit() and len(user_input.replace('-', '')) >= 7
+            
+            if is_niin:
+                # Input is a NIIN
+                niin = user_input.replace('-', '')
+            else:
+                # Input is a Part Number - look it up first to get NIIN
+                print(f"\nLooking up Part Number: {user_input}")
+                part_lookup = lookup_by_part_number(user_input)
+                
+                if not part_lookup.get("Matched") or not part_lookup.get("NIIN"):
+                    print(f"No matching part found for: {user_input}")
+                    continue
+                
+                niin = part_lookup["NIIN"]
+                print(f"Found NIIN: {niin}")
             
             print(f"\nFetching {table_name} data for NIIN: {niin}")
             print("Please wait...")
