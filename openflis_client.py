@@ -54,9 +54,7 @@ API_BASE_URL = "https://app.openflis.com/api/v1/query"
 _custom_api_key = None
 
 def get_api_key():
-    if _custom_api_key:
-        return _custom_api_key
-    return os.getenv('OPENFLIS_API_KEY')
+    return _custom_api_key
 
 def set_api_key(key):
     global _custom_api_key

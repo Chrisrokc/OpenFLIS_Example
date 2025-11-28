@@ -237,8 +237,7 @@ def display_raw_data(comprehensive_data):
 def main():
     init_session_state()
     
-    if st.session_state.user_api_key:
-        set_api_key(st.session_state.user_api_key)
+    set_api_key(st.session_state.user_api_key if st.session_state.user_api_key else None)
     
     st.markdown('<p class="main-header">🔍 OpenFLIS Data Lookup</p>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Federal Logistics Information System - NSN & NIIN Data Retrieval</p>', unsafe_allow_html=True)
@@ -246,13 +245,7 @@ def main():
     with st.sidebar:
         st.markdown("### Settings")
         
-        env_key = get_api_key()
-        has_env_key = bool(env_key) and not st.session_state.user_api_key
-        
-        if has_env_key:
-            st.success("API Key configured via environment")
-        
-        with st.expander("API Key Configuration", expanded=not env_key):
+        with st.expander("API Key Configuration", expanded=not st.session_state.user_api_key):
             st.markdown("Enter your OpenFLIS API key below. You can get one from [openflis.com](https://app.openflis.com).")
             
             api_key_input = st.text_input(
@@ -265,12 +258,12 @@ def main():
             
             if api_key_input != st.session_state.user_api_key:
                 st.session_state.user_api_key = api_key_input
-                set_api_key(api_key_input)
+                set_api_key(api_key_input if api_key_input else None)
                 st.cache_data.clear()
                 st.rerun()
             
             if st.session_state.user_api_key:
-                st.success("Using custom API key")
+                st.success("API key configured")
         
         st.markdown("---")
         st.markdown("### Search Options")
