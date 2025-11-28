@@ -51,15 +51,23 @@ SERVICE_CODE_MAP = {
 
 API_BASE_URL = "https://app.openflis.com/api/v1/query"
 
+_custom_api_key = None
+
 def get_api_key():
+    if _custom_api_key:
+        return _custom_api_key
     return os.getenv('OPENFLIS_API_KEY')
 
-def query_table(table_name, key):
-    api_key = get_api_key()
-    if not api_key:
+def set_api_key(key):
+    global _custom_api_key
+    _custom_api_key = key
+
+def query_table(table_name, key, api_key=None):
+    effective_api_key = api_key or get_api_key()
+    if not effective_api_key:
         return {"error": "API key not configured", "records": []}
     
-    url = f"{API_BASE_URL}?table={table_name}&key={key}&apiKey={api_key}"
+    url = f"{API_BASE_URL}?table={table_name}&key={key}&apiKey={effective_api_key}"
     
     try:
         response = requests.get(url, timeout=30)

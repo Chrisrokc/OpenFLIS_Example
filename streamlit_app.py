@@ -9,7 +9,8 @@ from openflis_client import (
     format_moe_record,
     format_standardization_record,
     format_army_management_record,
-    get_api_key
+    get_api_key,
+    set_api_key
 )
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -75,6 +76,8 @@ def init_session_state():
         st.session_state.last_search = ""
     if 'search_type' not in st.session_state:
         st.session_state.search_type = "NSN/NIIN"
+    if 'user_api_key' not in st.session_state:
+        st.session_state.user_api_key = ""
 
 def display_item_overview(overview):
     st.markdown('<p class="section-header">📋 Item Overview</p>', unsafe_allow_html=True)
@@ -234,14 +237,42 @@ def display_raw_data(comprehensive_data):
 def main():
     init_session_state()
     
+    if st.session_state.user_api_key:
+        set_api_key(st.session_state.user_api_key)
+    
     st.markdown('<p class="main-header">🔍 OpenFLIS Data Lookup</p>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Federal Logistics Information System - NSN & NIIN Data Retrieval</p>', unsafe_allow_html=True)
     
-    if not get_api_key():
-        st.error("⚠️ API Key not configured. Please set the OPENFLIS_API_KEY environment variable.")
-        st.stop()
-    
     with st.sidebar:
+        st.markdown("### Settings")
+        
+        env_key = get_api_key()
+        has_env_key = bool(env_key) and not st.session_state.user_api_key
+        
+        if has_env_key:
+            st.success("API Key configured via environment")
+        
+        with st.expander("API Key Configuration", expanded=not env_key):
+            st.markdown("Enter your OpenFLIS API key below. You can get one from [openflis.com](https://app.openflis.com).")
+            
+            api_key_input = st.text_input(
+                "API Key:",
+                value=st.session_state.user_api_key,
+                type="password",
+                placeholder="Enter your API key",
+                key="api_key_field"
+            )
+            
+            if api_key_input != st.session_state.user_api_key:
+                st.session_state.user_api_key = api_key_input
+                set_api_key(api_key_input)
+                st.cache_data.clear()
+                st.rerun()
+            
+            if st.session_state.user_api_key:
+                st.success("Using custom API key")
+        
+        st.markdown("---")
         st.markdown("### Search Options")
         
         search_type = st.radio(
@@ -293,7 +324,13 @@ def main():
         st.markdown("<br>", unsafe_allow_html=True)
         search_clicked = st.button("🔍 Search", type="primary", use_container_width=True)
     
+    if not get_api_key():
+        st.warning("Please configure your API key in the sidebar settings to search.")
+    
     if search_clicked and search_input:
+        if not get_api_key():
+            st.error("API Key required. Please enter your API key in the sidebar settings.")
+            st.stop()
         with st.spinner("Fetching data from OpenFLIS API..."):
             if search_type == "NSN/NIIN":
                 niin, fsc = parse_nsn_input(search_input)
